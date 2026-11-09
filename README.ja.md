@@ -15,6 +15,18 @@
 > [!NOTE]
 > Exactは1.0前で、毎日のように変わっています。このアプリはexact2の`94b8671`（2026年11月）で作りました。
 
+## アプリサイズと起動時間
+
+同じアプリのSwiftUI版（[reflex-native-app-demo](https://github.com/kazutoyo/reflex-native-app-demo)）、React Native版（[reflex-expo-app](https://github.com/kazutoyo/reflex-expo-app)）と比べました。どれもReleaseビルドです。
+
+| | IPA（iOS実機向け・署名なし） | 展開後 | UIが出るまで | 天気が出るまで |
+|---|---|---|---|---|
+| SwiftUI | 0.24MB | 1.0MB | 2,017ms | 2,950ms |
+| Expo（SDK 58 / RN 0.88） | 18.1MB | 54.0MB | 2,283ms | 3,333ms |
+| Exact | 11.1MB | 23.4MB | 1,967ms | 3,150ms |
+
+起動時間は、iPhone 18 ProのSimulator（iOS 27.2、Apple M2 Max）でのコールド起動7回の中央値で、`tools/launch-time.py`が60fpsの画面録画から測ります。Simulatorではどのアプリにも約2秒が上乗せされるので、絶対値ではなく差を見てください。
+
 ## ファイル
 
 | ファイル | 内容 |
@@ -25,6 +37,7 @@
 | `strings/en.json` | 位置情報の許可ダイアログの説明文 |
 | `tools/film.py`、`tools/compose.py` | Exactのエージェントで同じ操作をWeb・iOS・macOSで撮り、3つを並べた動画にする |
 | `tools/record-web.mjs` | Webビルドを Chrome DevTools Protocol で3倍の解像度で録画する |
+| `tools/launch-time.py` | iOS Simulatorでのコールド起動の時間を、画面の録画から測る |
 
 ## 動かし方
 

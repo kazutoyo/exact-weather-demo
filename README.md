@@ -15,6 +15,18 @@ The same weather app as [reflex-expo-app](https://github.com/kazutoyo/reflex-exp
 > [!NOTE]
 > Exact is pre-1.0 and changes daily. This app was built against exact2 `94b8671` (November 2026).
 
+## Size and launch time
+
+Compared with the same app in SwiftUI ([reflex-native-app-demo](https://github.com/kazutoyo/reflex-native-app-demo)) and React Native ([reflex-expo-app](https://github.com/kazutoyo/reflex-expo-app)), all Release builds:
+
+| | IPA (iOS device, unsigned) | Unzipped | Cold launch to UI | To weather shown |
+|---|---|---|---|---|
+| SwiftUI | 0.24 MB | 1.0 MB | 2,017 ms | 2,950 ms |
+| Expo (SDK 58 / RN 0.88) | 18.1 MB | 54.0 MB | 2,283 ms | 3,333 ms |
+| Exact | 11.1 MB | 23.4 MB | 1,967 ms | 3,150 ms |
+
+Launch times are medians of 7 cold launches on an iPhone 18 Pro Simulator (iOS 27.2, Apple M2 Max), measured from a 60 fps screen recording by `tools/launch-time.py`. The Simulator adds about 2 s to every app, so compare the differences, not the absolute numbers.
+
 ## Files
 
 | File | What it is |
@@ -25,6 +37,7 @@ The same weather app as [reflex-expo-app](https://github.com/kazutoyo/reflex-exp
 | `strings/en.json` | The location permission's purpose string |
 | `tools/film.py`, `tools/compose.py` | Film the same flow on web, iOS and macOS with Exact's agent, then lay the three side by side |
 | `tools/record-web.mjs` | Record the web build at 3x through Chrome DevTools Protocol |
+| `tools/launch-time.py` | Cold-launch timing on an iOS Simulator from a screen recording |
 
 ## Run it
 
