@@ -1,4 +1,4 @@
-# reflex-exact-app
+# exact-weather-demo
 
 [English](README.md) | 日本語
 
