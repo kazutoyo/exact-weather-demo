@@ -2,7 +2,7 @@
 
 [English](README.md) | 日本語
 
-[reflex-expo-app](https://github.com/kazutoyo/reflex-expo-app)（React Native / Expo）と[reflex-native-app](https://github.com/kazutoyo/reflex-native-app)（SwiftUI / Jetpack Compose）と同じ天気アプリを、Expoの新しいクロスプラットフォームランタイム[Exact](https://github.com/expo/exact)で作ったものです。ContractのView 1つとTypeScriptのデータモジュール1つが、iOS（UIKit）、macOS（AppKit）、Web（DOM）でネイティブに動きます。
+[reflex-expo-app](https://github.com/kazutoyo/reflex-expo-app)（React Native / Expo）と[reflex-native-app-demo](https://github.com/kazutoyo/reflex-native-app-demo)（SwiftUI / Jetpack Compose）と同じ天気アプリを、Expoの新しいクロスプラットフォームランタイム[Exact](https://github.com/expo/exact)で作ったものです。ContractのView 1つとTypeScriptのデータモジュール1つが、iOS（UIKit）、macOS（AppKit）、Web（DOM）でネイティブに動きます。
 
 ![iOS・macOS・Webを同じ操作で同時に動かしたところ](docs/demo/three-platforms.gif)
 

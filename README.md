@@ -2,7 +2,7 @@
 
 English | [日本語](README.ja.md)
 
-The same weather app as [reflex-expo-app](https://github.com/kazutoyo/reflex-expo-app) (React Native / Expo) and [reflex-native-app](https://github.com/kazutoyo/reflex-native-app) (SwiftUI / Jetpack Compose), built with [Exact](https://github.com/expo/exact), Expo's new cross-platform runtime. One Contract view and one TypeScript data module run natively on iOS (UIKit), macOS (AppKit) and the web (DOM).
+The same weather app as [reflex-expo-app](https://github.com/kazutoyo/reflex-expo-app) (React Native / Expo) and [reflex-native-app-demo](https://github.com/kazutoyo/reflex-native-app-demo) (SwiftUI / Jetpack Compose), built with [Exact](https://github.com/expo/exact), Expo's new cross-platform runtime. One Contract view and one TypeScript data module run natively on iOS (UIKit), macOS (AppKit) and the web (DOM).
 
 ![iOS, macOS and web, driven in lockstep](docs/demo/three-platforms.gif)
 
