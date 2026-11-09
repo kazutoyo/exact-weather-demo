@@ -1,0 +1,356 @@
+// Weather: three tabs (my location, favorites, search). Data is Open-Meteo (app.ts).
+use EmptyState from "exact:content"
+use getCurrentPosition, geolocationStatus, GeolocationPosition, GeolocationStatus from "@exact/geolocation"
+use reverseGeocode, geocodingStatus, Place as GeoPlace, GeocodingStatus from "@exact/geocoding"
+
+routes nav
+  tab weather "/"
+  tab search "/search"
+    city "/city/:id"
+  tab favorites "/favorites"
+    favorite "/favorites/:id"
+
+shape Day
+  date: string
+  code: number
+  max: number
+  min: number
+
+shape Forecast
+  ready: bool
+  temp: number
+  code: number
+  days: Day[]
+
+shape City
+  id: string
+  name: string
+  region: string
+  lat: number
+  lon: number
+
+shape Results
+  query: string
+  items: City[]
+
+shape CityWeather
+  id: string
+  ok: bool
+  city: City
+  forecast: Forecast
+  favorite: bool
+
+shape FavoriteItem
+  city: City
+  forecast: Forecast
+
+shape Reply
+  ok: bool
+
+// WMO weather code → text, SF Symbol and sky colours (same mapping as the native app).
+fn describe(code: number): string = code == 0 ? "Clear" : code <= 2 ? "Sunny" : code == 3 ? "Cloudy" : code <= 48 ? "Fog" : code <= 57 ? "Drizzle" : code <= 67 ? "Rain" : code <= 77 ? "Snow" : code <= 82 ? "Showers" : code <= 86 ? "Snow Showers" : "Thunderstorm"
+fn symbolOf(code: number): string = code == 0 ? "symbol:sf/sun.max.fill" : code <= 2 ? "symbol:sf/cloud.sun.fill" : code == 3 ? "symbol:sf/cloud.fill" : code <= 48 ? "symbol:sf/cloud.fog.fill" : code <= 67 or (code >= 80 and code <= 82) ? "symbol:sf/cloud.rain.fill" : code <= 86 ? "symbol:sf/cloud.snow.fill" : "symbol:sf/cloud.bolt.rain.fill"
+fn sky(code: number): string = code <= 2 ? "linear-gradient(180deg, #2973D9, #6BB8F5)" : code <= 48 ? "linear-gradient(180deg, #59738F, #99ADC7)" : code <= 67 or (code >= 80 and code <= 82) ? "linear-gradient(180deg, #334561, #6B8099)" : code <= 86 ? "linear-gradient(180deg, #617899, #ADBFD9)" : "linear-gradient(180deg, #21243D, #52547A)"
+fn deg(n: number): string = `${round(n)}°`
+fn cityOf(xs: CityWeather[], id: string): option<CityWeather> = first(xs.filter(c => c.id == id))
+
+component App
+  // My location: position → place name → forecast
+  state lat = 0
+  state lon = 0
+  state located = false
+  state place = "My Location"
+  state draft = ""
+  state query = ""
+  resource location = geolocationStatus() as shape GeolocationStatus else empty()
+  resource geocoding = geocodingStatus() as shape GeocodingStatus else empty()
+  mutation position as shape GeolocationPosition then arrived
+  mutation named as shape GeoPlace[] then labelled
+  resource here = forecast(lat, lon, located) as shape Forecast
+
+  // Search: asks when typing pauses, or on the Search key
+  resource results = searchCities(query) as shape Results else empty()
+
+  // City detail: every city on any tab's stack, read together
+  derive cityIds = nav.tabs.map(t => t.stack.map(e => e.params.id)).flat().filter(i => i != "")
+  resource cities = loadCities(cityIds) as shape CityWeather[] else empty()
+  resource favorites = loadFavorites() as shape FavoriteItem[] else empty()
+  mutation toggled as shape Reply queue refreshes favorites, cities
+
+  action pick(name: string)
+    nav = select(nav, name)
+  action follow(url: string)
+    nav = go(nav, url)
+
+  action locate
+    send position = getCurrentPosition(maximumAge=600000, apple.desiredAccuracy="threeKilometers")
+  action arrived
+    match position
+      case some(p)
+        lat = p.coords.latitude
+        lon = p.coords.longitude
+        located = true
+        if geocoding.available
+          send named = reverseGeocode(latitude=p.coords.latitude, longitude=p.coords.longitude)
+      case none
+        located = located
+  action labelled
+    match named
+      case some(places)
+        match first(places)
+          case some(pl)
+            match pl.city
+              case some(c)
+                place = c
+              case none
+                place = place
+          case none
+            place = place
+      case none
+        place = place
+  action reloadHere
+    refresh here
+  action openSettings
+    openURL("app-settings:")
+
+  action edit(v: string)
+    draft = v
+  action search
+    query = draft.trim()
+  action retrySearch
+    refresh results
+  action reloadCities
+    refresh cities
+  action reloadFavorites
+    refresh favorites
+  action toggle(c: City)
+    send toggled = toggleFavorite(c.id, c.name, c.region, c.lat, c.lon)
+
+  // Search once typing pauses (the Search key searches at once)
+  task debounce when draft.trim() != query key=draft
+    after(400, search)
+
+  // Already allowed: locate as soon as the app opens
+  task autoLocate when location.state == "granted" and not located and not pending(position)
+    after(1, locate)
+
+  view
+    main navigationKey=`${top(nav).id}` navigationBack="back" navigate=follow testId="app"
+      width="100%" height="100%" display="flex" flex-direction="column"
+      column flex=1 min-height=0 position="relative"
+        for t in nav.tabs key=t.name
+          column role="tabpanel" id=`panel-${t.name}` position="absolute" inset=0
+            for e in t.stack key=e.id
+              if e.name == "weather"
+                // White text and a glass card over the sky gradient (the native SkyScroll)
+                column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0
+                  display="flex" flex-direction="column" background-image=sky(here.ready ? here.code : 0) color-scheme="dark" color="-exact-label"
+                  header padding="8px 16px" color-scheme="dark"
+                    text place role="heading" aria-level=2 color="-exact-label"
+                  scroll id=`content-${e.id}` refresh=reloadHere refreshing=(located and pending(here)) flex=1 min-height=0
+                    WeatherScreen(location=location, located=located, locating=pending(position),
+                      locateFailed=failed(position), named=(place != "My Location"), here=here, loading=pending(here), loadFailed=failed(here),
+                      locate=locate, reload=reloadHere, openSettings=openSettings, openSearch=pick("search"))
+              if e.name == "city" or e.name == "favorite"
+                column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0
+                  display="flex" flex-direction="column" color-scheme="dark" color="-exact-label"
+                  background-image=sky(match cityOf(cities, e.params.id) { case some(c) => c.forecast.code, case none => 0 })
+                  match cityOf(cities, e.params.id)
+                    case some(c)
+                      header display="flex" align-items="center" padding="8px 16px" color-scheme="dark"
+                        text c.city.name role="heading" aria-level=2 flex=1 color="-exact-label"
+                        if c.ok
+                          button press=toggle(c.city) disabled=pending(toggled) testId=`star-${t.name}`
+                            aria-label="Favorite"
+                            image (c.favorite ? "symbol:star-fill" : "symbol:star") color=(c.favorite ? "-exact-system-yellow" : "currentcolor")
+                      scroll id=`content-${e.id}` flex=1 min-height=0
+                        column padding=16 gap=20 align-items="center"
+                          if c.ok
+                            text c.city.region font="-exact-subheadline" font-weight=500 opacity=0.75 testId=`region-${t.name}`
+                            ForecastView(tab=t.name, forecast=c.forecast)
+                          else
+                            MessageCard(symbol="symbol:sf/exclamationmark.icloud.fill", title="Couldn't Load the Weather", message="Check your connection and try again.")
+                              button press=reloadCities buttonStyle="prominent-glass" testId=`retry-city-${t.name}`
+                                text "Try Again"
+                    case none
+                      header padding="8px 16px"
+                        text "" role="heading" aria-level=2
+                      column flex=1 align-items="center" padding-top=120
+                        progress aria-label="Loading" testId=`city-loading-${t.name}`
+              if e.name == "search"
+                column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0
+                  display="flex" flex-direction="column"
+                  header display="flex" flex-wrap="wrap" align-items="center" gap=8 padding="8px 16px"
+                    text "Search" role="heading" aria-level=1 flex=1
+                    input type="search" value=draft input=edit submit=search placeholder="City name (e.g. Tokyo)" aria-label="Search for a city"
+                      testId="search-input" width="100%"
+                  SearchScreen(id=`content-${e.id}`, query=query, results=results, loading=pending(results), loadFailed=failed(results),
+                    favorites=favorites, retry=retrySearch)
+              if e.name == "favorites"
+                column navigationKey=`${e.id}` navigationScroll=`content-${e.id}` position="absolute" inset=0
+                  display="flex" flex-direction="column"
+                  header padding="8px 16px"
+                    text "Favorites" role="heading" aria-level=1
+                  FavoritesScreen(id=`content-${e.id}`, favorites=favorites, loading=pending(favorites), reload=reloadFavorites)
+      row role="tablist" testId="tabs"
+        button role="tab" aria-controls="panel-weather" aria-selected=(nav.tab == "weather") press=pick("weather")
+          testId="tab-weather" flex=1
+          image "symbol:sf/cloud.sun.fill"
+          text "Weather"
+        button role="tab" aria-controls="panel-favorites" aria-selected=(nav.tab == "favorites") press=pick("favorites")
+          testId="tab-favorites" flex=1
+          image "symbol:star-fill"
+          text "Favorites"
+        button role="tab" aria-controls="panel-search" aria-selected=(nav.tab == "search") press=pick("search")
+          testId="tab-search" flex=1
+          image "symbol:search"
+          text "Search"
+
+// A glass card: symbol, title, message, then its buttons (the native MessageCard).
+component MessageCard
+  props
+    symbol: string
+    title: string
+    message: string
+  slot
+  view
+    column align-items="center" gap=12 padding=24 width="100%" box-sizing="border-box"
+      border-radius=24 backgroundMaterial="glass"
+      image symbol aria-hidden=true font="-exact-large-title"
+      text title font="-exact-headline" text-align="center"
+      text message font="-exact-footnote" text-align="center"
+      children
+
+// The big symbol and temperature, then the 7-day forecast (the native ForecastCard).
+component ForecastView
+  props
+    tab: string
+    forecast: Forecast
+  view
+    column align-items="center" gap=4 testId=`hero-${tab}`
+      image symbolOf(forecast.code) aria-hidden=true -exact-symbol-rendering="multicolor" font-size="3.5rem"
+      text deg(forecast.temp) font-size="5.5rem" font-weight=100 testId=`temp-${tab}`
+      text describe(forecast.code) font="-exact-title3" font-weight=600 testId=`desc-${tab}`
+      match first(forecast.days)
+        case some(d)
+          text `H:${deg(d.max)} L:${deg(d.min)}` font="-exact-subheadline"
+        case none
+          text ""
+    column padding=16 width="100%" box-sizing="border-box" border-radius=24 backgroundMaterial="glass"
+      text "7-Day Forecast" font="-exact-caption1" font-weight=600 color="-exact-secondary-label" padding-bottom=8
+      for d, i in forecast.days key=d.date
+        row align-items="center" gap=8 padding="8px 0" testId=`day-${tab}-${d.date}`
+          text (i == 0 ? "Today" : d.date.slice(5).replaceAll("-", "/")) width="3.25rem" flex-shrink=0
+          row width="1.75rem" flex-shrink=0 justify-content="center"
+            image symbolOf(d.code) aria-label=describe(d.code) -exact-symbol-rendering="multicolor" font-size="1rem"
+          text describe(d.code) font="-exact-footnote" color="-exact-secondary-label" flex=1 min-width=0
+          text deg(d.min) color="-exact-secondary-label"
+          text deg(d.max) width="2.25rem" text-align="right" flex-shrink=0
+
+component WeatherScreen
+  props
+    location: GeolocationStatus
+    located: bool
+    locating: bool
+    locateFailed: bool
+    named: bool
+    here: Forecast
+    loading: bool
+    loadFailed: bool
+    locate: action
+    reload: action
+    openSettings: action
+    openSearch: action
+  view
+    column padding=16 gap=20 align-items="center"
+      if location.state == "denied"
+        MessageCard(symbol="symbol:sf/location.slash.fill", title="Location Access Is Off", message="Allow location access to see the weather where you are.")
+          button press=openSettings buttonStyle="prominent-glass" testId="open-settings"
+            text "Open Settings"
+          button press=openSearch buttonStyle="glass" testId="open-search"
+            text "Search for a City"
+      else if not location.available
+        MessageCard(symbol="symbol:sf/location.slash.fill", title="Location Is Unavailable", message="Search for a city to see its weather.")
+          button press=openSearch buttonStyle="glass" testId="open-search"
+            text "Search for a City"
+      else if locateFailed and not locating
+        MessageCard(symbol="symbol:sf/location.slash.fill", title="Couldn't Find Your Location", message="Try again, or search for a city.")
+          button press=locate buttonStyle="prominent-glass" testId="retry-locate"
+            text "Try Again"
+      else if not located and not locating and location.state != "granted"
+        MessageCard(symbol="symbol:sf/location.fill", title="Weather Where You Are", message="Use your location to see the weather where you are.")
+          button press=locate buttonStyle="prominent-glass" testId="use-location"
+            text "Use My Location"
+      else if loadFailed and not here.ready and not loading
+        MessageCard(symbol="symbol:sf/exclamationmark.icloud.fill", title="Couldn't Load the Weather", message="Check your connection and try again.")
+          button press=reload buttonStyle="prominent-glass" testId="retry-weather"
+            text "Try Again"
+      else if not here.ready
+        column padding-top=120
+          progress aria-label="Loading" testId="weather-loading"
+      else
+        if named
+          text "My Location" font="-exact-subheadline" font-weight=500 opacity=0.75
+        ForecastView(tab="weather", forecast=here)
+
+component SearchScreen
+  props
+    id: string
+    query: string
+    results: Results
+    loading: bool
+    loadFailed: bool
+    favorites: FavoriteItem[]
+    retry: action
+  view
+    if query == ""
+      EmptyState(symbol="symbol:search", title="Search for a City", message="Search by city name to see its weather.")
+    else if loading and results.query != query
+      column flex=1 align-items="center" justify-content="center"
+        progress aria-label="Searching" testId="searching"
+    else if loadFailed and not loading
+      EmptyState(symbol="symbol:sf/wifi.exclamationmark", title="Search Failed", message="Check your connection and try again.")
+        button press=retry testId="retry-search"
+          text "Try Again"
+    else if results.items.length == 0
+      EmptyState(symbol="symbol:search", title=`No Results for “${query}”`, message="Check the spelling or try a new search.")
+    else
+      list id=id appearance="auto" listStyle="inset-grouped" flex=1 min-height=0
+        section
+          header
+            text "Results"
+          for c in results.items key=c.id
+            link href=path("city", c.id) testId=`result-${c.id}`
+              column flex=1 min-width=0 gap=2
+                text c.name
+                text c.region font="-exact-caption1" color="-exact-secondary-label"
+              if favorites.filter(f => f.city.id == c.id).length > 0
+                image "symbol:star-fill" color="-exact-system-yellow" aria-label="Favorite"
+              image "symbol:forward-chevron"
+
+// A card in each city's sky colours (the native FavoriteCard).
+component FavoritesScreen
+  props
+    id: string
+    favorites: FavoriteItem[]
+    loading: bool
+    reload: action
+  view
+    if favorites.length == 0 and not loading
+      EmptyState(symbol="symbol:star", title="No Favorites Yet", message="Tap ☆ on a city to add it here.")
+    else
+      scroll id=id refresh=reload refreshing=loading flex=1 min-height=0
+        column padding=16 gap=12
+          for f in favorites key=f.city.id
+            link href=path("favorite", f.city.id) testId=`fav-${f.city.id}` aria-label=f.city.name
+              display="flex" flex-direction="row" gap=12 height="6.875rem" padding=16 box-sizing="border-box"
+              border-radius=22 background-image=sky(f.forecast.ready ? f.forecast.code : 0) color-scheme="dark" color="-exact-label"
+              column flex=1 min-width=0 gap=2
+                text f.city.name font="-exact-title3" font-weight=600
+                text f.city.region font="-exact-caption1"
+                column flex=1
+                text (f.forecast.ready ? describe(f.forecast.code) : "Couldn't load") font="-exact-footnote"
+              column align-items="flex-end" justify-content="space-between"
+                if f.forecast.ready
+                  image symbolOf(f.forecast.code) aria-hidden=true -exact-symbol-rendering="multicolor" font="-exact-title2"
+                  text deg(f.forecast.temp) font-size="2.5rem" font-weight=300 testId=`fav-temp-${f.city.id}`

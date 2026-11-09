@@ -1,0 +1,38 @@
+// Search and favorites call the real Open-Meteo (no fixtures).
+
+test "without permission, offers to use my location"
+  expect tree has "use-location"
+
+test "a city opened from search and starred stays in Favorites after a relaunch"
+  tap "tab-favorites"
+  expect tree missing "fav-1853909"
+  tap "tab-search"
+  type "search-input" "Osaka"
+  clock +400
+  clock data
+  tap "result-1853909"
+  clock data
+  clock settle
+  expect text "region-search" == "Osaka, Japan"
+  tap "star-search"
+  clock data
+  reload
+  tap "tab-favorites"
+  clock data
+  expect tree has "fav-1853909"
+  tap "fav-1853909"
+  clock data
+  clock settle
+  expect text "region-favorites" == "Osaka, Japan"
+
+test "a failed search offers Try Again, which finds the city"
+  fail fetch "https://geocoding-api.open-meteo.com"
+  tap "tab-search"
+  type "search-input" "Osaka"
+  clock +400
+  clock data
+  expect tree has "retry-search"
+  pass fetch "https://geocoding-api.open-meteo.com"
+  tap "retry-search"
+  clock data
+  expect tree has "result-1853909"

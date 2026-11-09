@@ -1,0 +1,12 @@
+{
+  "name": "reflex-exact-app-demo",
+  "private": true,
+  "scripts": {
+    "build": "bun exact.mjs web-build --out dist",
+    "start": "bun exact.mjs serve dist"
+  },
+  "dependencies": {
+    "@exact/geolocation": "file:../exact/packages/geolocation",
+    "@exact/geocoding": "file:../exact/packages/geocoding"
+  }
+}

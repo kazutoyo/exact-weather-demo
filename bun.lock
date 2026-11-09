@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 2,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "reflex-exact-app-demo",
+      "dependencies": {
+        "@exact/geocoding": "file:../exact/packages/geocoding",
+        "@exact/geolocation": "file:../exact/packages/geolocation",
+      },
+    },
+  },
+  "packages": {
+    "@exact/geocoding": ["@exact/geocoding@file:../exact/packages/geocoding", {}],
+
+    "@exact/geolocation": ["@exact/geolocation@file:../exact/packages/geolocation", {}],
+  }
+}

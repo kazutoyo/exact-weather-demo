@@ -1,0 +1,36 @@
+{
+  "$schema": "../exact/scripts/app.schema.json",
+  "name": "Weather",
+  "short_name": "Weather",
+  "id": "dev.kazutoyo.reflexexact",
+  "start_url": "/",
+  "display": "standalone",
+  "app": {
+    "id": "dev.kazutoyo.reflexexact",
+    "name": "Weather"
+  },
+  "host": {
+    "web": {},
+    "ios": {
+      "minimumOS": "17.0",
+      "deviceFamily": [
+        "iphone",
+        "ipad"
+      ]
+    },
+    "macos": {
+      "minimumOS": "14.0",
+      "window": {
+        "width": 900,
+        "height": 700
+      }
+    }
+  },
+  "deploy": {
+    "store": {
+      "web": "0",
+      "ios": "0",
+      "macos": "0"
+    }
+  }
+}
