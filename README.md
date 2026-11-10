@@ -21,11 +21,11 @@ Compared with the same app in SwiftUI ([reflex-native-app-demo](https://github.c
 
 | | IPA (iOS device, unsigned) | Unzipped | Cold launch to UI | To weather shown |
 |---|---|---|---|---|
-| SwiftUI | 0.24 MB | 1.0 MB | 2,017 ms | 2,950 ms |
-| Expo (SDK 58 / RN 0.88) | 18.1 MB | 54.0 MB | 2,283 ms | 3,333 ms |
-| Exact | 11.1 MB | 23.4 MB | 1,967 ms | 3,150 ms |
+| SwiftUI | 0.24 MB | 1.0 MB | 367 ms | 1,233 ms |
+| Expo (SDK 58 / RN 0.88) | 18.1 MB | 54.0 MB | 400 ms | 1,000 ms |
+| Exact | 11.1 MB | 23.4 MB | 350 ms | 1,000 ms |
 
-Launch times are medians of 7 cold launches on an iPhone 18 Pro Simulator (iOS 27.2, Apple M2 Max), measured from a 60 fps screen recording by `tools/launch-time.py`. The Simulator adds about 2 s to every app, so compare the differences, not the absolute numbers.
+Launch times are medians of 7 cold launches on an iPhone 14 (iOS 26.6.1), timed from the start of the launch animation in a 60 fps recording of the phone's screen taken from the Mac by `tools/device-launch-time.py` (with `tools/rec.swift`). About 300 ms of each is iOS's launch animation. "To weather shown" includes the location fix and the network. `tools/launch-time.py` does the same on a Simulator, which adds about 2 s to every app.
 
 ## Files
 
@@ -37,7 +37,8 @@ Launch times are medians of 7 cold launches on an iPhone 18 Pro Simulator (iOS 2
 | `strings/en.json` | The location permission's purpose string |
 | `tools/film.py`, `tools/compose.py` | Film the same flow on web, iOS and macOS with Exact's agent, then lay the three side by side |
 | `tools/record-web.mjs` | Record the web build at 3x through Chrome DevTools Protocol |
-| `tools/launch-time.py` | Cold-launch timing on an iOS Simulator from a screen recording |
+| `tools/device-launch-time.py`, `tools/rec.swift` | Cold-launch timing on a USB-connected iPhone from a recording of its screen |
+| `tools/launch-time.py` | The same on an iOS Simulator |
 
 ## Run it
 

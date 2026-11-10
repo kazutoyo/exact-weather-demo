@@ -21,11 +21,11 @@
 
 | | IPA（iOS実機向け・署名なし） | 展開後 | UIが出るまで | 天気が出るまで |
 |---|---|---|---|---|
-| SwiftUI | 0.24MB | 1.0MB | 2,017ms | 2,950ms |
-| Expo（SDK 58 / RN 0.88） | 18.1MB | 54.0MB | 2,283ms | 3,333ms |
-| Exact | 11.1MB | 23.4MB | 1,967ms | 3,150ms |
+| SwiftUI | 0.24MB | 1.0MB | 367ms | 1,233ms |
+| Expo（SDK 58 / RN 0.88） | 18.1MB | 54.0MB | 400ms | 1,000ms |
+| Exact | 11.1MB | 23.4MB | 350ms | 1,000ms |
 
-起動時間は、iPhone 18 ProのSimulator（iOS 27.2、Apple M2 Max）でのコールド起動7回の中央値で、`tools/launch-time.py`が60fpsの画面録画から測ります。Simulatorではどのアプリにも約2秒が上乗せされるので、絶対値ではなく差を見てください。
+起動時間は、iPhone 14（iOS 26.6.1）の実機でのコールド起動7回の中央値です。`tools/device-launch-time.py`（と`tools/rec.swift`）が、MacからiPhoneの画面を60fpsで録画し、起動のアニメーションの開始から測ります。どれも300ms前後はiOSの起動のアニメーションです。「天気が出るまで」には位置情報と通信の待ち時間が含まれます。`tools/launch-time.py`は同じことをSimulatorで行いますが、どのアプリにも約2秒が上乗せされます。
 
 ## ファイル
 
@@ -37,7 +37,8 @@
 | `strings/en.json` | 位置情報の許可ダイアログの説明文 |
 | `tools/film.py`、`tools/compose.py` | Exactのエージェントで同じ操作をWeb・iOS・macOSで撮り、3つを並べた動画にする |
 | `tools/record-web.mjs` | Webビルドを Chrome DevTools Protocol で3倍の解像度で録画する |
-| `tools/launch-time.py` | iOS Simulatorでのコールド起動の時間を、画面の録画から測る |
+| `tools/device-launch-time.py`、`tools/rec.swift` | USBでつないだiPhoneでのコールド起動の時間を、画面の録画から測る |
+| `tools/launch-time.py` | 同じことをiOS Simulatorで測る |
 
 ## 動かし方
 
