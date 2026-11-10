@@ -78,7 +78,19 @@ def measure(i):
         shutil.rmtree(frames); os.remove(video)
     return (ui - start) * 1000 / FPS, (ready - start) * 1000 / FPS
 
-results = [measure(i) for i in range(runs)]
+def measured(i):
+    # A run that never shows the launch (no frame leaves the home screen, or it was already
+    # open) is a failed recording, not a 0 ms launch: take it again, at most twice.
+    for _ in range(3):
+        try:
+            r = measure(i)
+            if r[0] > 0: return r
+        except StopIteration:
+            pass
+        print(f"run {i}: no launch in the recording, again", file=sys.stderr)
+    sys.exit(f"run {i}: three recordings without a launch")
+
+results = [measured(i) for i in range(runs)]
 for ui, ready in results:
     print(f"ui {ui:6.0f} ms   ready {ready:6.0f} ms")
 print(f"median: ui {statistics.median(r[0] for r in results):.0f} ms, ready {statistics.median(r[1] for r in results):.0f} ms")
