@@ -22,8 +22,8 @@ Compared with the same app in SwiftUI ([reflex-native-app-demo](https://github.c
 | | IPA (iOS device, unsigned) | Unzipped | Cold launch to UI | To weather shown |
 |---|---|---|---|---|
 | SwiftUI | 0.24 MB | 1.0 MB | 333 ms | 917 ms |
-| Expo (SDK 58 / RN 0.88) | 18.1 MB | 54.0 MB | 333 ms | 1,017 ms |
 | Exact | 11.1 MB | 23.4 MB | 350 ms | 1,000 ms |
+| Expo (SDK 58 / RN 0.88) | 18.1 MB | 54.0 MB | 333 ms | 1,017 ms |
 
 Launch times are medians of 7 cold launches on an iPhone 14 (iOS 26.6.1), timed from the start of the launch animation in a 60 fps recording of the phone's screen taken from the Mac by `tools/device-launch-time.py` (with `tools/rec.swift`). About 300 ms of each is iOS's launch animation. "To weather shown" includes the location fix and the network. `tools/launch-time.py` does the same on a Simulator, which adds about 2 s to every app.
 
